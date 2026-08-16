@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: efros-do-connector
+
+connector:
+  edo:
+    base-url: https://10.116.41.37       # тестовый стенд EDO
+    login: CHANGE_ME
+    password: CHANGE_ME
+    security-object-types: []            # TODO: заполнить после ответа тимлида, пока фильтр выключен
+    connect-timeout: 5s
+    read-timeout: 30s
+  e4:
+    url: http://e4/adapter/import-ts     # TODO: URL адаптера e4
+    connect-timeout: 5s
+    read-timeout: 30s
+
+logging:
+  level:
+    ru.company.connector.efrosdo: DEBUG
