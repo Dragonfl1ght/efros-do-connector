@@ -10,9 +10,11 @@ import ru.company.connector.efrosdo.dto.edo.EdoLoginResponse;
 import ru.company.connector.efrosdo.dto.edo.EdoSecurityObject;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Клиент Efros DO: логин + получение объектов защиты.
+ * Пути и формат тела проверены вручную на реальном стенде через Swagger.
  */
 @Component
 public class EdoClient {
@@ -29,21 +31,25 @@ public class EdoClient {
     public String login() {
         var body = new EdoLoginRequest(props.edo().login(), props.edo().password());
         EdoLoginResponse resp = edoRestClient.post()
-                .uri("/api/v1/Login/LoginByPassword")   // TODO: сверить путь
+                .uri("/api/v1/Auth/LoginByPassword")
                 .body(body)
                 .retrieve()
                 .body(EdoLoginResponse.class);
-        if (resp == null || resp.accessToken() == null) {
+        if (resp == null || resp.token() == null || resp.token().accessToken() == null) {
             throw new IllegalStateException("EDO вернул пустой ответ на login");
         }
-        return resp.accessToken();
+        return resp.token().accessToken();
     }
 
-    /** GET /api/v1/SecurityObject/GetFlattenSoHierarchy. TODO: уточнить пагинацию. */
+    /**
+     * POST /api/v1/SecurityObject/GetFlattenSoHierarchy с пустым телом фильтра.
+     * TODO: уточнить пагинацию и реальные имена полей элементов ответа.
+     */
     public List<EdoSecurityObject> getFlattenSoHierarchy(String jwt) {
-        List<EdoSecurityObject> list = edoRestClient.get()
+        List<EdoSecurityObject> list = edoRestClient.post()
                 .uri("/api/v1/SecurityObject/GetFlattenSoHierarchy")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                .body(Map.of())
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
         return list == null ? List.of() : list;
