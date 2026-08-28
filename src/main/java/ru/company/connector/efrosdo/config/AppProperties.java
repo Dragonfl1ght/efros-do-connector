@@ -3,7 +3,6 @@ package ru.company.connector.efrosdo.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
-import java.util.Set;
 
 /**
  * Настройки коннектора: адрес и креды EDO, адрес адаптера e4.
@@ -15,16 +14,10 @@ public record AppProperties(Edo edo, E4 e4) {
             String baseUrl,
             String login,
             String password,
-            // TODO: согласовать с тимлидом реальные значения type для "объекта защиты".
-            // Пусто = фильтрация по типу выключена, идут все объекты с непустым id.
-            Set<String> securityObjectTypes,
             Duration connectTimeout,
             Duration readTimeout
     ) {
         public Edo {
-            if (securityObjectTypes == null) {
-                securityObjectTypes = Set.of();
-            }
             if (connectTimeout == null) {
                 connectTimeout = Duration.ofSeconds(5);
             }
