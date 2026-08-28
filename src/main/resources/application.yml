@@ -10,7 +10,6 @@ connector:
     base-url: https://10.116.41.37       # тестовый стенд EDO
     login: CHANGE_ME
     password: CHANGE_ME
-    security-object-types: []            # TODO: заполнить после ответа тимлида, пока фильтр выключен
     connect-timeout: 5s
     read-timeout: 30s
   e4:
