@@ -1,4 +1,7 @@
 package ru.company.connector.efrosdo.dto.edo;
 
-/** Ответ логина. TODO: сверить имена полей. */
-public record EdoLoginResponse(String accessToken) {}
+/** Ответ POST /api/v1/Auth/LoginByPassword — токен вложен в поле token. Проверено на реальном стенде. */
+public record EdoLoginResponse(EdoToken token) {
+
+    public record EdoToken(String accessToken, String refreshToken, long expires) {}
+}
