@@ -23,7 +23,7 @@ class DeviceMapperTest {
         ));
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).idAdjSys()).isEqualTo("id-1");
+        assertThat(result.get(0).idEfros()).isEqualTo("id-1");
         assertThat(result.get(0).source()).isEqualTo("Efros Defense Operations");
         assertThat(result.get(0).host()).isEqualTo("10.0.0.1");
     }
