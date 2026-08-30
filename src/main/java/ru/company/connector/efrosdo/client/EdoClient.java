@@ -31,7 +31,7 @@ public class EdoClient {
     public String login() {
         var body = new EdoLoginRequest(props.edo().login(), props.edo().password());
         EdoLoginResponse resp = edoRestClient.post()
-                .uri("/api/v1/Auth/LoginByPassword")
+                .uri("/api/identity/Auth/LoginByPassword")
                 .body(body)
                 .retrieve()
                 .body(EdoLoginResponse.class);
