@@ -46,7 +46,7 @@ public class EdoClient {
         try {
             return fetchHierarchy(token.accessToken());
         } catch (HttpClientErrorException.Unauthorized e) {
-            log.warn("Токен EDO не принят, обновляем и пробуем ещё раз");
+            log.warn("EDO отклонил текущий accessToken (401) на GetFlattenSoHierarchy, обновляем токен и повторяем");
             refreshOrLogin();
             return fetchHierarchy(token.accessToken());
         }
@@ -54,6 +54,7 @@ public class EdoClient {
 
     private synchronized void ensureToken() {
         if (token == null) {
+            log.info("Токена ещё нет, выполняем первичный логин в EDO");
             token = login();
         }
     }
@@ -62,30 +63,46 @@ public class EdoClient {
         if (token != null && token.refreshToken() != null) {
             try {
                 token = refresh(token.refreshToken());
+                log.info("Токен EDO успешно обновлён через refreshToken");
                 return;
             } catch (Exception e) {
-                log.warn("Не удалось обновить токен по refreshToken, логинимся заново", e);
+                log.warn("refreshToken не сработал ({}), логинимся заново по логину/паролю", e.getMessage());
             }
         }
         token = login();
     }
 
     private TokenPair login() {
-        var body = new EdoLoginRequest(props.edo().login(), props.edo().password());
-        EdoLoginResponse resp = edoRestClient.post()
-                .uri("/api/identity/Auth/LoginByPassword")
-                .body(body)
-                .retrieve()
-                .body(EdoLoginResponse.class);
-        return toTokenPair(resp, "login");
+        log.debug("EDO login: POST {} /api/identity/Auth/LoginByPassword", props.edo().baseUrl());
+        try {
+            var body = new EdoLoginRequest(props.edo().login(), props.edo().password());
+            EdoLoginResponse resp = edoRestClient.post()
+                    .uri("/api/identity/Auth/LoginByPassword")
+                    .body(body)
+                    .retrieve()
+                    .body(EdoLoginResponse.class);
+            TokenPair pair = toTokenPair(resp, "login");
+            log.info("Логин в EDO успешен");
+            return pair;
+        } catch (HttpClientErrorException e) {
+            log.error("EDO отклонил LoginByPassword: HTTP {} — проверь логин/пароль в connector.edo.login/password"
+                    + " (возможно, не переданы при запуске или устарели)", e.getStatusCode().value());
+            throw e;
+        }
     }
 
     private TokenPair refresh(String refreshToken) {
-        EdoLoginResponse resp = edoRestClient.post()
-                .uri("/api/identity/Auth/refreshToken/{refreshToken}", refreshToken)
-                .retrieve()
-                .body(EdoLoginResponse.class);
-        return toTokenPair(resp, "refresh");
+        log.debug("EDO refresh: POST {} /api/identity/Auth/refreshToken/...", props.edo().baseUrl());
+        try {
+            EdoLoginResponse resp = edoRestClient.post()
+                    .uri("/api/identity/Auth/refreshToken/{refreshToken}", refreshToken)
+                    .retrieve()
+                    .body(EdoLoginResponse.class);
+            return toTokenPair(resp, "refresh");
+        } catch (HttpClientErrorException e) {
+            log.warn("EDO отклонил refreshToken: HTTP {}", e.getStatusCode().value());
+            throw e;
+        }
     }
 
     private TokenPair toTokenPair(EdoLoginResponse resp, String operation) {
@@ -96,6 +113,7 @@ public class EdoClient {
     }
 
     private List<EdoSecurityObject> fetchHierarchy(String accessToken) {
+        log.debug("EDO hierarchy: POST {} /api/v1/SecurityObject/GetFlattenSoHierarchy", props.edo().baseUrl());
         List<EdoSecurityObject> list = edoRestClient.post()
                 .uri("/api/v1/SecurityObject/GetFlattenSoHierarchy")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)

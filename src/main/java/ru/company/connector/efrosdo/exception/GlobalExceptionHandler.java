@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Единая точка обработки ошибок для /api/run: чтобы ТМ получал внятный статус и сообщение,
@@ -19,7 +20,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RestClientException.class)
     public ResponseEntity<ErrorResponseDto> handleUpstreamFailure(RestClientException ex) {
-        log.error("Ошибка обращения к EDO или e4", ex);
+        if (ex instanceof RestClientResponseException responseEx) {
+            log.error("Ошибка обращения к EDO или e4: HTTP {} {}",
+                    responseEx.getStatusCode().value(), responseEx.getStatusText());
+            log.debug("Полный стектрейс", ex);
+        } else {
+            log.error("Ошибка обращения к EDO или e4", ex);
+        }
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponseDto(ex.getMessage()));
     }
