@@ -10,7 +10,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * Единая точка обработки ошибок для /api/run: чтобы ТМ получал внятный статус и сообщение,
+ * Единая точка обработки ошибок для /api/integration/launch: чтобы ТМ получал внятный статус и сообщение,
  * а не стандартную Spring-страницу со стектрейсом.
  */
 @RestControllerAdvice

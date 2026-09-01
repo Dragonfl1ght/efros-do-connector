@@ -1,0 +1,55 @@
+{
+  "identity": {
+    "adjacentSystemType": "Efros Defense Operations",
+    "name": "Connector_EfrosDO_UKO",
+    "uid": "efrosdo_uko",
+    "alias": "Коннектор Efros Defense Operations (УКО)"
+  },
+  "location": {
+    "host": "ЗАМЕНИТЬ-НА-РЕАЛЬНЫЙ-АДРЕС-СЕРВИСА",
+    "address": "http://ЗАМЕНИТЬ-НА-РЕАЛЬНЫЙ-АДРЕС-СЕРВИСА:8080",
+    "port": "8080"
+  },
+  "parameters": {
+    "version": "0.0.1",
+    "isManual": true,
+    "isShadow": false,
+    "cronString": "0 0 3 * * ?",
+    "currentConfig": {
+      "serviceSettings": {
+        "name": "Connector_EfrosDO_UKO",
+        "alias": "Коннектор Efros Defense Operations (УКО)",
+        "address": "http://ЗАМЕНИТЬ-НА-РЕАЛЬНЫЙ-АДРЕС-СЕРВИСА:8080"
+      },
+      "adjacentSystemInteractionSettings": {
+        "connectionSettings": {
+          "address": "https://10.116.41.37"
+        },
+        "apiSettings": {
+          "requestTimeout": "00:00:30"
+        }
+      },
+      "e4AdapterSettings": {
+        "address": "http://e4/adapter/import-ts"
+      },
+      "taskManagerInteractionSettings": {
+        "address": "http://ЗАМЕНИТЬ-НА-АДРЕС-ТМ:80"
+      }
+    },
+    "flow": {
+      "upstream": [],
+      "downstream": [],
+      "stages": [
+        "download",
+        "conversion",
+        "upload"
+      ]
+    }
+  },
+  "condition": {
+    "status": "free"
+  },
+  "integration": {
+    "taskGuid": null
+  }
+}
