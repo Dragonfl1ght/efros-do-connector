@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 /**
  * Коннектор Efros Defense Operations -> САОБ.
  * <p>
- * ТМ дёргает /api/run. Мы логинимся в EDO, тянем объекты защиты,
+ * ТМ дёргает POST /api/integration/launch. Мы логинимся в EDO, тянем объекты защиты,
  * маппим поля и отправляем в адаптер e4.
  */
 @SpringBootApplication
