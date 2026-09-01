@@ -13,28 +13,31 @@
 
 set -euo pipefail
 
-TM="${TM:-http://10.10.10.10:80}"
+TM="${TM:-https://10.10.18.175:8443}"
 UID_SERVICE="${UID_SERVICE:-efrosdo_uko}"
 JSON="$(dirname "$0")/regconn.json"
+
+# -k: ТМ на этом стенде поднят по HTTPS с самоподписанным сертификатом (как и EDO).
+CURL_INSECURE="-k"
 
 cmd="${1:-register}"
 
 case "$cmd" in
   register)
     echo "Регистрация $UID_SERVICE в ТМ ($TM)..."
-    curl -i -X POST "$TM/api/manage/regconn" \
+    curl $CURL_INSECURE -i -X POST "$TM/api/manage/regconn" \
       -H "Content-Type: application/json" \
       -d @"$JSON"
     ;;
 
   list)
-    curl -s -X POST "$TM/api/performanceinfo/getlistconn" \
+    curl $CURL_INSECURE -s -X POST "$TM/api/performanceinfo/getlistconn" \
       -H "Content-Type: application/json" \
       -d '{"limit": "50"}'
     ;;
 
   status)
-    curl -s -X POST "$TM/api/performanceinfo/getstatus" \
+    curl $CURL_INSECURE -s -X POST "$TM/api/performanceinfo/getstatus" \
       -H "Content-Type: application/json" \
       -d "{\"serviceUId\": \"$UID_SERVICE\"}"
     ;;
@@ -42,7 +45,7 @@ case "$cmd" in
   delete)
     read -rp "Удалить регистрацию $UID_SERVICE? [y/N] " answer
     [[ "$answer" == "y" ]] || exit 0
-    curl -i -X POST "$TM/api/manage/deleteconnector" \
+    curl $CURL_INSECURE -i -X POST "$TM/api/manage/deleteconnector" \
       -H "Content-Type: application/json" \
       -d "{\"serviceUId\": \"$UID_SERVICE\"}"
     ;;
