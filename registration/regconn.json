@@ -2,7 +2,7 @@
   "identity": {
     "adjacentSystemType": "Efros Defense Operations",
     "name": "Connector_EfrosDO_UKO",
-    "uid": "efrosdo_uko",
+    "uId": "efrosdo_uko",
     "alias": "Коннектор Efros Defense Operations (УКО)"
   },
   "location": {
@@ -16,24 +16,27 @@
     "isShadow": false,
     "cronString": "0 0 3 * * ?",
     "currentConfig": {
-      "serviceSettings": {
-        "name": "Connector_EfrosDO_UKO",
-        "alias": "Коннектор Efros Defense Operations (УКО)",
-        "address": "http://10.10.18.175:8080"
-      },
-      "adjacentSystemInteractionSettings": {
-        "connectionSettings": {
-          "address": "https://10.116.41.37"
+      "isDisposable": false,
+      "rootElement": {
+        "serviceSettings": {
+          "name": "Connector_EfrosDO_UKO",
+          "alias": "Коннектор Efros Defense Operations (УКО)",
+          "address": "http://10.10.18.175:8080"
         },
-        "apiSettings": {
-          "requestTimeout": "00:00:30"
+        "adjacentSystemInteractionSettings": {
+          "connectionSettings": {
+            "address": "https://10.116.41.37"
+          },
+          "apiSettings": {
+            "requestTimeout": "00:00:30"
+          }
+        },
+        "e4AdapterSettings": {
+          "address": "http://e4/adapter/import-ts"
+        },
+        "taskManagerInteractionSettings": {
+          "address": "https://10.10.18.175:8443"
         }
-      },
-      "e4AdapterSettings": {
-        "address": "http://e4/adapter/import-ts"
-      },
-      "taskManagerInteractionSettings": {
-        "address": "https://10.10.18.175:8443"
       }
     },
     "flow": {
@@ -47,9 +50,6 @@
     }
   },
   "condition": {
-    "status": "free"
-  },
-  "integration": {
-    "taskGuid": null
+    "status": "Free"
   }
 }
