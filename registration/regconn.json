@@ -33,7 +33,7 @@
         "address": "http://e4/adapter/import-ts"
       },
       "taskManagerInteractionSettings": {
-        "address": "http://ЗАМЕНИТЬ-НА-АДРЕС-ТМ:80"
+        "address": "https://10.10.18.175:8443"
       }
     },
     "flow": {
