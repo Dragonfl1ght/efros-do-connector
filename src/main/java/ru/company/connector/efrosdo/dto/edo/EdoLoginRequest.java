@@ -1,4 +1,4 @@
 package ru.company.connector.efrosdo.dto.edo;
 
-/** Тело POST /api/v1/Login/LoginByPassword. TODO: сверить со свагером. */
-public record EdoLoginRequest(String login, String password) {}
+/** Тело POST /api/identity/Auth/LoginByPassword. Поле называется userName, не login (проверено на реальном стенде). */
+public record EdoLoginRequest(String userName, String password) {}
