@@ -13,10 +13,12 @@ controller/IntegrationController.java  - единственный входящи
 service/DeviceSyncService.java         - оркестрация одного прогона: login -> fetch -> map -> send
 mapper/DeviceMapper.java               - фильтр объектов защиты + маппинг EdoSecurityObject -> DeviceImport
 client/EdoClient.java                  - HTTP-вызовы EDO: login/refresh (с кешем токена) + getFlattenSoHierarchy
+client/EdoApiPaths.java                - пути API EDO одной кучей
 client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices
 dto/tm/                                - LaunchRequestDto, LaunchResponseDto (контракт ТМ)
 dto/edo/                               - EdoLoginRequest, EdoLoginResponse, EdoSecurityObject
-dto/e4/DeviceImport.java               - тело импорта ТС в e4
+dto/e4/DeviceImport.java               - тело импорта ТС в e4, собирается через DeviceImport.of()
+dto/e4/E4ImportConstants.java          - фиксированные значения контракта e4 (Да/Нет, имя источника)
 dto/RunResultDto.java                  - внутренний итог прогона (для логов DeviceSyncService)
 exception/GlobalExceptionHandler.java  - единая обработка ошибок EDO/e4 -> 502 + сообщение
 config/AppProperties.java              - URL/креды EDO, URL e4, таймауты
@@ -24,7 +26,7 @@ config/HttpClientsConfig.java          - RestClient beans; EDO-клиент до
 registration/                          - разовая ручная регистрация в ТМ (regconn.json, register.sh, README.md)
 ```
 
-Контроллер не содержит бизнес-логики — только делегирует в `DeviceSyncService`. Фильтрация и маппинг вынесены в `DeviceMapper`, поэтому тестируются юнит-тестом без поднятия Spring-контекста (`DeviceMapperTest`).
+Контроллер не содержит бизнес-логики — только делегирует в `DeviceSyncService`. Фильтрация и маппинг вынесены в `DeviceMapper`, поэтому тестируются юнит-тестом без поднятия Spring-контекста (`DeviceMapperTest`). Имена полей в теле импорта e4 зафиксированы отдельным тестом (`DeviceImportJsonTest`) — e4 сверяет их строкой.
 
 ## Запуск
 
@@ -41,10 +43,12 @@ mvn spring-boot:run
 - `host` объекта защиты бывает в трёх местах: `host`, `ciFeature.host`, `acsFeatures[].host`.
 - Стенд EDO — самоподписанный сертификат, EDO-клиент настроен доверять ему явно.
 - Контракт ТМ: путь и тело `POST /api/integration/launch` фиксированы документацией.
+- Контракт импорта в e4 (согласован с тимлидом): `guid`/`srcs.guid`/`srcs.idAdjSys` — все три равны GUID объекта в EDO; `host` раскладывается на `ipv4` (если это IP) или `hostName` (иначе); флаги `Да`/`Нет` — константы; передавать можно массивом.
 
 ## TODO (согласовать с тимлидом)
 
-- Точный контракт e4-адаптера (URL, формат тела, авторизация, что при повторной отправке того же id — дубль/обновление/игнор).
+- URL и авторизация e4-адаптера (состав полей и batch уже согласованы).
+- Маппинг адреса: несколько `acsFeatures` с разными `host` (сейчас берём первый непустой), IPv6 (уйдёт в `hostName`), объект вообще без `host`.
 - Пагинация в `GetFlattenSoHierarchy` — есть или нет (в задаче: "получить максимальное количество ОЗ").
 - Метод `refreshToken` — предположительно `POST /api/identity/Auth/refreshToken/{refreshToken}`, не проверен вручную через Swagger (сверено только по описанию пользователя).
 - Параметры регистрации в ТМ (`uid`, `cronString`, содержимое `currentConfig`, `adjacentSystemType`) — см. открытые вопросы в `registration/README.md` и `CLAUDE.md`.

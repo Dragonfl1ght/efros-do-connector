@@ -25,6 +25,9 @@ public record EdoSecurityObject(
         CiFeature ciFeature
 ) {
 
+    /** Значение type у реального объекта защиты; всё остальное ("Group") — папки иерархии. */
+    public static final String TYPE_SECURITY_OBJECT = "SecurityObject";
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AcsFeature(String host, String id, String name) {}
 

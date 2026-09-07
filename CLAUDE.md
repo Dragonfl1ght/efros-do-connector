@@ -110,11 +110,13 @@ src/main/java/ru/company/connector/efrosdo/
 │   └── DeviceMapper.java                 фильтр объектов защиты + маппинг в DeviceImport
 ├── client/
 │   ├── EdoClient.java                    login/refresh (с кешем токена) + getFlattenSoHierarchy
+│   ├── EdoApiPaths.java                  пути API EDO одной кучей, не разбросаны по коду
 │   └── E4Client.java                     importDevices() в адаптер e4
 ├── dto/
 │   ├── tm/                               LaunchRequestDto, LaunchResponseDto (контракт ТМ)
 │   ├── edo/                              EdoLoginRequest, EdoLoginResponse, EdoSecurityObject
-│   ├── e4/DeviceImport.java              тело импорта ТС в e4
+│   ├── e4/DeviceImport.java              тело импорта ТС в e4, собирается через DeviceImport.of()
+│   ├── e4/E4ImportConstants.java         фиксированные значения контракта e4 (Да/Нет, имя источника)
 │   └── RunResultDto.java                 внутренний итог прогона, для логов
 └── exception/
     └── GlobalExceptionHandler.java       ошибки EDO/e4 -> 502 + сообщение
@@ -149,17 +151,26 @@ registration/                             разовая ручная регис
 
 ## Состав полей для импорта
 
-Из EDO берём ровно эти поля (согласовано, "таблица 9"):
+Контракт согласован с тимлидом на реальном примере тела запроса (см. `DeviceImport.of`):
 
-| Поле EDO | Поле в e4 | Комментарий |
-|----------|-----------|-------------|
+| Поле в e4 | Откуда | Комментарий |
+|-----------|--------|-------------|
+| `guid` | `id` | GUID объекта в EDO |
+| `srcs.guid` | `id` | тот же GUID |
+| `srcs.idAdjSys` | `id` | тот же GUID |
+| `srcs.name` | — | константа `"Efros Defense Operation"` (без "s", в отличие от `regconn.json`) |
 | `name` | `name` | Наименование |
-| `description` | `description` | Описание |
-| `host` (см. выше, 3 источника) | `host` | IP-адрес |
-| `id` | `idAdjSys` | GUID объекта в Efros |
-| — | `source` | Константа `"Efros Defense Operations"` |
+| `purpose` | `description` | Описание |
+| `ipv4` | `host` (3 источника, см. выше) | только если значение — IP-адрес |
+| `hostName` | `host` (3 источника, см. выше) | если значение **не** IP-адрес (например, DNS-имя) |
+| `sSourceInput`, `includedSys`, `storeInfA`, `swInstalled`, `sSoftwareInstances` | — | константа `"Нет"` |
+| `loadConPhd` | — | константа `"Да"` |
 
-Поле `type` используется **только для фильтра**, в e4 не передаётся.
+Все три id-поля намеренно заполняются одним и тем же GUID из EDO: благодаря этому повторный
+прогон обновляет запись в e4, а не создаёт дубль. **Не заменять на случайный UUID.**
+
+`ipv4` и `hostName` — это один и тот же `host` из EDO, разложенный по двум полям: заполнено
+не больше одного из двух. Поле `type` используется **только для фильтра**, в e4 не передаётся.
 
 ---
 
@@ -201,9 +212,12 @@ registration/                             разовая ручная регис
 
 ## Открытые вопросы (не выдумывать ответы — спрашивать)
 
-1. **Контракт адаптера e4** — точный URL, формат тела, batch или по одному, авторизация,
-   идемпотентность при повторной отправке того же `idAdjSys`. Сейчас заглушка
-   `http://e4/adapter/import-ts`.
+1. **Контракт адаптера e4** — состав полей и batch подтверждены тимлидом, остаются: точный URL
+   (сейчас заглушка `http://e4/adapter/import-ts`) и авторизация.
+   По самому маппингу открыто:
+   - если у объекта несколько `acsFeatures` с разными `host` — берём первый непустой, остальные теряем;
+   - IPv6 в `host` уйдёт в `hostName`, а не в `ipv4` (регекс проверяет только IPv4);
+   - если `host` нет нигде — оба поля (`ipv4`, `hostName`) уходят пустыми.
 2. **Пагинация** в `GetFlattenSoHierarchy` — есть или нет. В задаче: "получить
    максимальное количество ОЗ".
 3. **Метод `refreshToken`** — POST предположительно, не подтверждено через Swagger.

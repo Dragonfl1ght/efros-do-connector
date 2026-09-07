@@ -38,16 +38,13 @@ public class HttpClientsConfig {
     }
 
     private ClientHttpRequestFactory requestFactory(Duration connectTimeout, Duration readTimeout) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) connectTimeout.toMillis());
-        factory.setReadTimeout((int) readTimeout.toMillis());
-        return factory;
+        return withTimeouts(new SimpleClientHttpRequestFactory(), connectTimeout, readTimeout);
     }
 
     /** Тестовый стенд EDO ходит по самоподписанному сертификату (тот же случай, что и curl -k). */
     private ClientHttpRequestFactory trustAllRequestFactory(Duration connectTimeout, Duration readTimeout) {
         SSLContext sslContext = trustAllSslContext();
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory() {
+        return withTimeouts(new SimpleClientHttpRequestFactory() {
             @Override
             protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
                 if (connection instanceof HttpsURLConnection https) {
@@ -56,9 +53,14 @@ public class HttpClientsConfig {
                 }
                 super.prepareConnection(connection, httpMethod);
             }
-        };
-        factory.setConnectTimeout((int) connectTimeout.toMillis());
-        factory.setReadTimeout((int) readTimeout.toMillis());
+        }, connectTimeout, readTimeout);
+    }
+
+    private SimpleClientHttpRequestFactory withTimeouts(SimpleClientHttpRequestFactory factory,
+                                                        Duration connectTimeout,
+                                                        Duration readTimeout) {
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
         return factory;
     }
 

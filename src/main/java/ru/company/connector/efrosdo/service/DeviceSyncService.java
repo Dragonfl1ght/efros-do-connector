@@ -40,7 +40,6 @@ public class DeviceSyncService {
         log.info("После фильтра осталось {} ТС, отправляем в e4", devices.size());
 
         e4Client.importDevices(devices);
-        log.info("Задача завершена");
 
         return new RunResultDto(objects.size(), devices.size());
     }

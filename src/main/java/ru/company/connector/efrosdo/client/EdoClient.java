@@ -73,11 +73,11 @@ public class EdoClient {
     }
 
     private TokenPair login() {
-        log.debug("EDO login: POST {} /api/identity/Auth/LoginByPassword", props.edo().baseUrl());
+        log.debug("EDO login: POST {}{}", props.edo().baseUrl(), EdoApiPaths.LOGIN_BY_PASSWORD);
         try {
             var body = new EdoLoginRequest(props.edo().login(), props.edo().password());
             EdoLoginResponse resp = edoRestClient.post()
-                    .uri("/api/identity/Auth/LoginByPassword")
+                    .uri(EdoApiPaths.LOGIN_BY_PASSWORD)
                     .body(body)
                     .retrieve()
                     .body(EdoLoginResponse.class);
@@ -92,10 +92,10 @@ public class EdoClient {
     }
 
     private TokenPair refresh(String refreshToken) {
-        log.debug("EDO refresh: POST {} /api/identity/Auth/refreshToken/...", props.edo().baseUrl());
+        log.debug("EDO refresh: POST {}/api/identity/Auth/refreshToken/...", props.edo().baseUrl());
         try {
             EdoLoginResponse resp = edoRestClient.post()
-                    .uri("/api/identity/Auth/refreshToken/{refreshToken}", refreshToken)
+                    .uri(EdoApiPaths.REFRESH_TOKEN, refreshToken)
                     .retrieve()
                     .body(EdoLoginResponse.class);
             return toTokenPair(resp, "refresh");
@@ -113,9 +113,9 @@ public class EdoClient {
     }
 
     private List<EdoSecurityObject> fetchHierarchy(String accessToken) {
-        log.debug("EDO hierarchy: POST {} /api/v1/SecurityObject/GetFlattenSoHierarchy", props.edo().baseUrl());
+        log.debug("EDO hierarchy: POST {}{}", props.edo().baseUrl(), EdoApiPaths.FLATTEN_SO_HIERARCHY);
         List<EdoSecurityObject> list = edoRestClient.post()
-                .uri("/api/v1/SecurityObject/GetFlattenSoHierarchy")
+                .uri(EdoApiPaths.FLATTEN_SO_HIERARCHY)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .body(Map.of())
                 .retrieve()
