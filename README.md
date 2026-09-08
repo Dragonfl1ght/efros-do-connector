@@ -12,7 +12,9 @@
 controller/IntegrationController.java  - единственный входящий эндпоинт POST /api/integration/launch, только HTTP-обвязка
 service/DeviceSyncService.java         - оркестрация одного прогона: login -> fetch -> map -> send
 mapper/DeviceMapper.java               - фильтр объектов защиты + маппинг EdoSecurityObject -> DeviceImport
-client/EdoClient.java                  - HTTP-вызовы EDO: login/refresh (с кешем токена) + getFlattenSoHierarchy
+mapper/HostAddress.java                - разбор host на ipv4/hostName (регекс IPv4)
+client/EdoClient.java                  - HTTP-вызов EDO: getFlattenSoHierarchy, повтор при 401
+client/EdoTokenProvider.java           - логин/refresh и кеш токена EDO
 client/EdoApiPaths.java                - пути API EDO одной кучей
 client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices
 dto/tm/                                - LaunchRequestDto, LaunchResponseDto (контракт ТМ)
@@ -21,12 +23,15 @@ dto/e4/DeviceImport.java               - тело импорта ТС в e4, с�
 dto/e4/E4ImportConstants.java          - фиксированные значения контракта e4 (Да/Нет, имя источника)
 dto/RunResultDto.java                  - внутренний итог прогона (для логов DeviceSyncService)
 exception/GlobalExceptionHandler.java  - единая обработка ошибок EDO/e4 -> 502 + сообщение
-config/AppProperties.java              - URL/креды EDO, URL e4, таймауты
-config/HttpClientsConfig.java          - RestClient beans; EDO-клиент доверяет самоподписанному сертификату стенда
+config/AppProperties.java              - URL/креды EDO, URL/креды e4, таймауты
+config/HttpClientsConfig.java          - RestClient beans (edoRestClient, e4RestClient)
+config/TrustAllRequestFactory.java     - доверие самоподписанным сертификатам стендов
 registration/                          - разовая ручная регистрация в ТМ (regconn.json, register.sh, README.md)
 ```
 
 Контроллер не содержит бизнес-логики — только делегирует в `DeviceSyncService`. Фильтрация и маппинг вынесены в `DeviceMapper`, поэтому тестируются юнит-тестом без поднятия Spring-контекста (`DeviceMapperTest`). Имена полей в теле импорта e4 зафиксированы отдельным тестом (`DeviceImportJsonTest`) — e4 сверяет их строкой.
+
+Комментариев в коде нет — это решение команды. Смысл несут имена классов, методов и тестов, а всё, что нужно знать про контракты и договорённости, собрано в `CLAUDE.md`. Открытые вопросы там же, а не в `// TODO`.
 
 ## Запуск
 
@@ -47,7 +52,7 @@ mvn spring-boot:run
 
 ## TODO (согласовать с тимлидом)
 
-- URL и авторизация e4-адаптера (состав полей и batch уже согласованы).
+- Авторизация адаптера e4: URL (`https://10.10.18.174/api/v1/import/Hardware`), состав полей и batch согласованы, но на Basic стенд отвечает `401 www-authenticate: Bearer` — нужен источник JWT-токена.
 - Маппинг адреса: несколько `acsFeatures` с разными `host` (сейчас берём первый непустой), IPv6 (уйдёт в `hostName`), объект вообще без `host`.
 - Пагинация в `GetFlattenSoHierarchy` — есть или нет (в задаче: "получить максимальное количество ОЗ").
 - Метод `refreshToken` — предположительно `POST /api/identity/Auth/refreshToken/{refreshToken}`, не проверен вручную через Swagger (сверено только по описанию пользователя).

@@ -4,12 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-/**
- * Коннектор Efros Defense Operations -> САОБ.
- * <p>
- * ТМ дёргает POST /api/integration/launch. Мы логинимся в EDO, тянем объекты защиты,
- * маппим поля и отправляем в адаптер e4.
- */
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class EfrosDoConnectorApplication {

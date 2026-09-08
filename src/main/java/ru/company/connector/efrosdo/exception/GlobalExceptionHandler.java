@@ -9,10 +9,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-/**
- * Единая точка обработки ошибок для /api/integration/launch: чтобы ТМ получал внятный статус и сообщение,
- * а не стандартную Spring-страницу со стектрейсом.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -27,14 +23,16 @@ public class GlobalExceptionHandler {
         } else {
             log.error("Ошибка обращения к EDO или e4", ex);
         }
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(new ErrorResponseDto(ex.getMessage()));
+        return badGateway(ex.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponseDto> handleIllegalState(IllegalStateException ex) {
         log.error("Некорректный ответ EDO", ex);
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(new ErrorResponseDto(ex.getMessage()));
+        return badGateway(ex.getMessage());
+    }
+
+    private static ResponseEntity<ErrorResponseDto> badGateway(String message) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponseDto(message));
     }
 }

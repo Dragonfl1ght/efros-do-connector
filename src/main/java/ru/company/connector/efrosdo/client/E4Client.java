@@ -6,10 +6,6 @@ import ru.company.connector.efrosdo.dto.e4.DeviceImport;
 
 import java.util.List;
 
-/**
- * Клиент адаптера e4 для импорта ТС.
- * TODO: точный контракт (путь, формат ответа, авторизация) согласовать с Иваном.
- */
 @Component
 public class E4Client {
 

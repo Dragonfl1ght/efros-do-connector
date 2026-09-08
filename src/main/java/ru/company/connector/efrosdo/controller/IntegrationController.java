@@ -11,16 +11,13 @@ import ru.company.connector.efrosdo.dto.tm.LaunchRequestDto;
 import ru.company.connector.efrosdo.dto.tm.LaunchResponseDto;
 import ru.company.connector.efrosdo.service.DeviceSyncService;
 
-/**
- * Единственный эндпоинт, который дёргает ТМ (Менеджер задач).
- * Путь и формат тела фиксированы документацией ТМ (раздел 1.5.1) — свой путь
- * придумать нельзя, ТМ стучится строго сюда: POST /api/integration/launch.
- */
 @RestController
 @RequestMapping("/api/integration")
 public class IntegrationController {
 
     private static final Logger log = LoggerFactory.getLogger(IntegrationController.class);
+
+    private static final String UNKNOWN_TASK_GUID = "<без taskGuid>";
 
     private final DeviceSyncService deviceSyncService;
 
@@ -39,10 +36,9 @@ public class IntegrationController {
         return LaunchResponseDto.accepted();
     }
 
-    /** ТМ может дёрнуть и без тела (например, при ручном запуске) — тогда идентификатора задачи нет. */
     private static String taskGuid(LaunchRequestDto request) {
         return request == null || request.integration() == null
-                ? "<без taskGuid>"
+                ? UNKNOWN_TASK_GUID
                 : request.integration().taskGuid();
     }
 }

@@ -12,9 +12,6 @@ import ru.company.connector.efrosdo.mapper.DeviceMapper;
 
 import java.util.List;
 
-/**
- * Один прогон синхронизации: логин в EDO -> объекты защиты -> фильтр/маппинг -> отправка в e4.
- */
 @Service
 public class DeviceSyncService {
 

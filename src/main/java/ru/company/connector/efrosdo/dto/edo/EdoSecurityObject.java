@@ -4,15 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
-/**
- * Элемент ответа POST /api/v1/SecurityObject/GetFlattenSoHierarchy.
- * Проверено на реальном стенде: type принимает значения "Group" (папка иерархии,
- * не объект защиты) и "SecurityObject" (реальный объект защиты).
- * host у объекта защиты бывает трёх видов:
- * - прямым полем host (объекты с источником CI);
- * - внутри ciFeature.host;
- * - внутри одного из acsFeatures[].host (объекты с источником ACS).
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record EdoSecurityObject(
         String id,
@@ -25,7 +16,6 @@ public record EdoSecurityObject(
         CiFeature ciFeature
 ) {
 
-    /** Значение type у реального объекта защиты; всё остальное ("Group") — папки иерархии. */
     public static final String TYPE_SECURITY_OBJECT = "SecurityObject";
 
     @JsonIgnoreProperties(ignoreUnknown = true)

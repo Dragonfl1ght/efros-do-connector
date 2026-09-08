@@ -7,13 +7,15 @@ spring:
 
 connector:
   edo:
-    base-url: https://10.116.41.37       # тестовый стенд EDO
+    base-url: https://10.116.41.37
     login: superadmin
     password: $Qwerty123456
     connect-timeout: 5s
     read-timeout: 30s
   e4:
-    url: http://e4/adapter/import-ts     # TODO: URL адаптера e4
+    url: https://10.10.18.174/api/v1/import/Hardware
+    login: ${CONNECTOR_E4_LOGIN:}
+    password: ${CONNECTOR_E4_PASSWORD:}
     connect-timeout: 5s
     read-timeout: 30s
 

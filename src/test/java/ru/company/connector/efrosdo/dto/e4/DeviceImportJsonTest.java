@@ -10,11 +10,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Имена полей в теле импорта e4 сверяет строкой, поэтому они должны совпадать с согласованным
- * примером буквально. Проверяем тем же ObjectMapper, который настраивает Spring Boot и которым
- * реально сериализует RestClient, — чтобы тест ловил и глобальную смену naming strategy.
- */
 @JsonTest
 class DeviceImportJsonTest {
 
@@ -50,8 +45,7 @@ class DeviceImportJsonTest {
         assertThat(json.get("srcs").get("name").asText()).isEqualTo("Efros Defense Operation");
     }
 
-    /** Импорт уходит пачкой — тимлид подтвердил, что массив можно передавать. */
-    @Test
+        @Test
     void serializesBatchAsJsonArray() {
         List<DeviceImport> devices = List.of(
                 DeviceImport.of("guid-1", "SRV-DB-01", "descr", null, "10.10.20.5"),

@@ -2,86 +2,30 @@ package ru.company.connector.efrosdo.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.time.Duration;
 
 @Configuration
 public class HttpClientsConfig {
 
     @Bean
     RestClient edoRestClient(AppProperties props) {
+        AppProperties.Edo edo = props.edo();
         return RestClient.builder()
-                .baseUrl(props.edo().baseUrl())
-                .requestFactory(trustAllRequestFactory(props.edo().connectTimeout(), props.edo().readTimeout()))
+                .baseUrl(edo.baseUrl())
+                .requestFactory(new TrustAllRequestFactory(edo.connectTimeout(), edo.readTimeout()))
                 .build();
     }
 
     @Bean
     RestClient e4RestClient(AppProperties props) {
-        return RestClient.builder()
-                .baseUrl(props.e4().url())
-                .requestFactory(requestFactory(props.e4().connectTimeout(), props.e4().readTimeout()))
-                .build();
-    }
-
-    private ClientHttpRequestFactory requestFactory(Duration connectTimeout, Duration readTimeout) {
-        return withTimeouts(new SimpleClientHttpRequestFactory(), connectTimeout, readTimeout);
-    }
-
-    /** Тестовый стенд EDO ходит по самоподписанному сертификату (тот же случай, что и curl -k). */
-    private ClientHttpRequestFactory trustAllRequestFactory(Duration connectTimeout, Duration readTimeout) {
-        SSLContext sslContext = trustAllSslContext();
-        return withTimeouts(new SimpleClientHttpRequestFactory() {
-            @Override
-            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
-                if (connection instanceof HttpsURLConnection https) {
-                    https.setSSLSocketFactory(sslContext.getSocketFactory());
-                    https.setHostnameVerifier((hostname, session) -> true);
-                }
-                super.prepareConnection(connection, httpMethod);
-            }
-        }, connectTimeout, readTimeout);
-    }
-
-    private SimpleClientHttpRequestFactory withTimeouts(SimpleClientHttpRequestFactory factory,
-                                                        Duration connectTimeout,
-                                                        Duration readTimeout) {
-        factory.setConnectTimeout(connectTimeout);
-        factory.setReadTimeout(readTimeout);
-        return factory;
-    }
-
-    private SSLContext trustAllSslContext() {
-        try {
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[]{new X509TrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
-
-                @Override
-                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
-
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            }}, new SecureRandom());
-            return sslContext;
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
-            throw new IllegalStateException("Не удалось создать доверяющий всем сертификатам SSLContext", e);
+        AppProperties.E4 e4 = props.e4();
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl(e4.url())
+                .requestFactory(new TrustAllRequestFactory(e4.connectTimeout(), e4.readTimeout()));
+        if (StringUtils.hasText(e4.login()) && StringUtils.hasText(e4.password())) {
+            builder.defaultHeaders(headers -> headers.setBasicAuth(e4.login(), e4.password()));
         }
+        return builder.build();
     }
 }
