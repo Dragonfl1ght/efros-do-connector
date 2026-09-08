@@ -1,0 +1,7 @@
+connector:
+  edo:
+    base-url: https://edo.test
+    login: test-login
+    password: test-password
+  e4:
+    url: https://e4.test/api/v1/import/Hardware
