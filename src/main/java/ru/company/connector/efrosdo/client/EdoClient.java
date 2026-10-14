@@ -24,23 +24,28 @@ public class EdoClient {
         this.tokenProvider = tokenProvider;
     }
 
-    public List<EdoSecurityObject> getFlattenSoHierarchy() {
+    public List<EdoSecurityObject> getSecurityObjects() {
         try {
-            return fetchHierarchy(tokenProvider.accessToken());
+            return fetchSecurityObjects(tokenProvider.accessToken());
         } catch (HttpClientErrorException.Unauthorized e) {
-            log.warn("EDO отклонил accessToken (401) на GetFlattenSoHierarchy, обновляем токен и повторяем");
-            return fetchHierarchy(tokenProvider.renew());
+            log.warn("EDO отклонил accessToken (401) на GetListSoHierarchy, обновляем токен и повторяем");
+            return fetchSecurityObjects(tokenProvider.renew());
         }
     }
 
-    private List<EdoSecurityObject> fetchHierarchy(String accessToken) {
-        log.debug("EDO hierarchy: POST {}", EdoApiPaths.FLATTEN_SO_HIERARCHY);
-        List<EdoSecurityObject> objects = edoRestClient.post()
-                .uri(EdoApiPaths.FLATTEN_SO_HIERARCHY)
+    private List<EdoSecurityObject> fetchSecurityObjects(String accessToken) {
+        log.debug("EDO hierarchy: POST {}", EdoApiPaths.LIST_SO_HIERARCHY);
+        List<EdoSecurityObject> roots = edoRestClient.post()
+                .uri(EdoApiPaths.LIST_SO_HIERARCHY)
                 .headers(headers -> headers.setBearerAuth(accessToken))
                 .body(Map.of())
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
-        return objects == null ? List.of() : objects;
+        if (roots == null) {
+            return List.of();
+        }
+        return roots.stream()
+                .flatMap(EdoSecurityObject::withDescendants)
+                .toList();
     }
 }

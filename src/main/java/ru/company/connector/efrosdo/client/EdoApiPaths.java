@@ -6,7 +6,7 @@ final class EdoApiPaths {
 
     static final String REFRESH_TOKEN = "/api/identity/Auth/refreshToken/{refreshToken}";
 
-    static final String FLATTEN_SO_HIERARCHY = "/api/v1/SecurityObject/GetFlattenSoHierarchy";
+    static final String LIST_SO_HIERARCHY = "/api/v1/SecurityObject/GetListSoHierarchy";
 
     private EdoApiPaths() {
     }

@@ -113,7 +113,8 @@ src/main/java/ru/company/connector/efrosdo/
 │   ├── DeviceMapper.java                 фильтр объектов защиты + маппинг в DeviceImport
 │   └── HostAddress.java                  разбор host на ipv4/hostName, регекс IPv4 живёт здесь
 ├── client/
-│   ├── EdoClient.java                    getFlattenSoHierarchy, повтор с новым токеном при 401
+│   ├── EdoClient.java                    getSecurityObjects: GetListSoHierarchy, разворачивание
+│   │                                     дерева в плоский список, повтор с новым токеном при 401
 │   ├── EdoTokenProvider.java             логин/refresh и кеш токена EDO — вся работа с токеном
 │   ├── EdoApiPaths.java                  пути API EDO одной кучей, не разбросаны по коду
 │   └── E4Client.java                     importDevices() в адаптер e4
@@ -166,14 +167,17 @@ config/application.yml.example            шаблон внешней конфи
 
 Внутри `IntegrationController.launch()` → `DeviceSyncService.run()`:
 
-1. `edoClient.getFlattenSoHierarchy()` — сам управляет токеном: если токена ещё нет,
+1. `edoClient.getSecurityObjects()` — `POST /api/v1/SecurityObject/GetListSoHierarchy`.
+   Ответ — **дерево**: корневые группы, всё остальное вложено через `children` на любую
+   глубину. Разворачивается в плоский список (`EdoSecurityObject.withDescendants`: родитель,
+   затем его поддерево). Сам управляет токеном: если токена ещё нет,
    логинится (`POST /api/identity/Auth/LoginByPassword`); если EDO ответит 401 —
    сначала пробует `POST /api/identity/Auth/refreshToken/{refreshToken}`, и только
    если это тоже не сработало — логинится заново. Токен кешируется между вызовами:
    слать `LoginByPassword` на каждый прогон стенд не принимает.
 2. Фильтр по полю `type == "SecurityObject"` (не `"Group"`) — `DeviceMapper`.
-3. `host` объекта достаём из одного из трёх мест (по порядку): `host`, `ciFeature.host`,
-   первый непустой `acsFeatures[].host`.
+3. `host` объекта достаём из одного из трёх мест (по порядку): `host`, первый непустой
+   `ciFeatures[].host`, первый непустой `acsFeatures[].host`.
 4. Маппинг в `DeviceImport`.
 5. `e4Client.importDevices(...)` → POST в адаптер e4.
 
@@ -229,16 +233,39 @@ config/application.yml.example            шаблон внешней конфи
 
 ## Тестовые стенды EDO
 
-- `https://10.116.41.37/` — самоподписанный сертификат, EDO-клиент настроен доверять
-  ему явно (`HttpClientsConfig.trustAllRequestFactory`), только для этого клиента,
-  e4-клиент проверяет сертификаты как обычно.
-- `https://10.116.48.160/`
+- `https://10.116.41.37/` — сборка `2.52.2026.1012`.
+- `https://10.116.48.160/` — сборка `2.52.2026.1011`.
 
-Реальные пути (подтверждено на стенде, не по свагеру "на глаз"):
+Оба на самоподписанных сертификатах; оба клиента (EDO и e4) доверяют им через
+`TrustAllRequestFactory`. Версия сборки — `GET /api/identity/App/info`.
+
+**Swagger EDO разбит по сервисам.** UI — `/swagger/index.html`, выбор сервиса в списке
+«Select a definition». JSON каждого сервиса лежит по `/swagger/docs/v1/<сервис>`, а не по
+`swagger.json`: `identity` — логин, `so` — объекты защиты. Список методов сервиса одной строкой:
+
+```
+curl -k -s https://<стенд>/swagger/docs/v1/so | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(m.upper(), p, "DEPRECATED" if o.get("deprecated") else "", "-", o.get("summary","")) for p,ops in d["paths"].items() for m,o in ops.items()]'
+```
+
+Используемые пути (подтверждены Swagger и вызовами на стенде):
 - `POST /api/identity/Auth/LoginByPassword` — тело `{"userName": "...", "password": "..."}`.
-- `POST /api/identity/Auth/refreshToken/{refreshToken}` — предположительно POST, путь
-  без Swagger-подтверждения метода, взят из описания пользователя.
-- `POST /api/v1/SecurityObject/GetFlattenSoHierarchy` — с пустым телом `{}` фильтра.
+- `POST /api/identity/Auth/refreshToken/{refreshToken}` — POST, подтверждено Swagger.
+- `POST /api/v1/SecurityObject/GetListSoHierarchy` — пустое тело `{}`, ответ — дерево.
+
+### Почему `GetListSoHierarchy`, а не `GetFlattenSoHierarchy`
+
+У заказчика сертифицированная EDO `2.13.42.0.20260112.16`. `GetFlattenSoHierarchy` в ней,
+по всей видимости, нет — это более новый метод. `GetListSoHierarchy` в свежей версии помечен
+**DEPRECATED**, то есть существовал раньше и при этом ещё работает — один код подходит
+и для нашего стенда, и для заказчика.
+
+Сверено на стенде `10.116.41.37`: после разворачивания дерева оба метода дают одинаковые
+числа — 1888 записей, 19 групп, 1869 ОЗ, из них 387 без `host` на верхнем уровне. Отличия
+в полях: `ciFeatures` (массив) вместо `ciFeature` (объект), `parentSoId` вместо `parentId`
+(не используем), плюс `children`.
+
+**Риск:** вендор может убрать DEPRECATED-метод в следующих версиях. Тогда для новых версий
+EDO придётся вернуться к `GetFlattenSoHierarchy` (плоский список, `ciFeature` — одним объектом).
 
 ---
 
@@ -271,9 +298,9 @@ config/application.yml.example            шаблон внешней конфи
    - если у объекта несколько `acsFeatures` с разными `host` — берём первый непустой, остальные теряем;
    - IPv6 в `host` уйдёт в `hostName`, а не в `ipv4` (регекс проверяет только IPv4);
    - если `host` нет нигде — оба поля (`ipv4`, `hostName`) уходят пустыми.
-3. **Пагинация** в `GetFlattenSoHierarchy` — есть или нет. В задаче: "получить
-   максимальное количество ОЗ".
-4. **Метод `refreshToken`** — POST предположительно, не подтверждено через Swagger.
+3. **`GetListSoHierarchy` в EDO 2.13.42** — у себя проверить нечем (наши стенды — 2.52).
+   Нужен один вызов на площадке заказчика: метод есть, и форма ответа та же (дерево, `ciFeatures`).
+4. **Несколько `ciFeatures` у одного ОЗ** — берём первый непустой `host`, как и для `acsFeatures`.
 5. **`uId` сервиса для регистрации в ТМ** — сейчас `efrosdo_uko` по аналогии с
    `ksc_uko`/`maxpatrol_uko`. Само поле называется `uId` (подтверждено схемой), но
    принятый в команде формат значения (строка-слаг vs GUID) не подтверждён.

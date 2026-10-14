@@ -2,7 +2,7 @@
 
 Коннектор Efros Defense Operations → САОБ (через адаптер e4).
 
-**Флоу:** ТМ (Менеджер задач) дёргает `POST /api/integration/launch` (путь и формат тела фиксированы документацией ТМ, раздел 1.5.1 — свой путь придумать нельзя) → логинимся в EDO (`POST /api/identity/Auth/LoginByPassword`) → `POST /api/v1/SecurityObject/GetFlattenSoHierarchy` с пустым телом фильтра → фильтр по `type == "SecurityObject"` → маппинг полей → POST в адаптер e4. Синхронно, в одном потоке, без очередей и без стейта.
+**Флоу:** ТМ (Менеджер задач) дёргает `POST /api/integration/launch` (путь и формат тела фиксированы документацией ТМ, раздел 1.5.1 — свой путь придумать нельзя) → логинимся в EDO (`POST /api/identity/Auth/LoginByPassword`) → `POST /api/v1/SecurityObject/GetListSoHierarchy` с пустым телом фильтра → разворачивание дерева в плоский список → фильтр по `type == "SecurityObject"` → маппинг полей → POST в адаптер e4. Синхронно, в одном потоке, без очередей и без стейта.
 
 Регистрация сервиса в ТМ — **разовая ручная операция**, не код (см. `registration/`). Уведомления об этапах/статусах ТМ (`running` → `free`) сознательно не отправляются — см. `CLAUDE.md`, раздел "Что мы сознательно НЕ делаем".
 
@@ -13,7 +13,7 @@ controller/IntegrationController.java  - единственный входящи
 service/DeviceSyncService.java         - оркестрация одного прогона: login -> fetch -> map -> send
 mapper/DeviceMapper.java               - фильтр объектов защиты + маппинг EdoSecurityObject -> DeviceImport
 mapper/HostAddress.java                - разбор host на ipv4/hostName (регекс IPv4)
-client/EdoClient.java                  - HTTP-вызов EDO: getFlattenSoHierarchy, повтор при 401
+client/EdoClient.java                  - HTTP-вызов EDO: GetListSoHierarchy, разворачивание дерева, повтор при 401
 client/EdoTokenProvider.java           - логин/refresh и кеш токена EDO
 client/EdoApiPaths.java                - пути API EDO одной кучей
 client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices
@@ -70,9 +70,10 @@ docker run -d --name efros-do-connector -p 8080:8080 \
 
 - Путь логина EDO: `POST /api/identity/Auth/LoginByPassword`, тело `{"userName": "...", "password": "..."}` (не `login`).
 - Ответ логина — токен вложен в `token.accessToken`/`token.refreshToken`/`token.expires`.
-- `GetFlattenSoHierarchy` — POST с пустым телом `{}` (не GET, без обязательных фильтров).
+- Выгрузка через `GetListSoHierarchy` — POST с пустым телом `{}`, ответ — дерево через `children`. Выбран вместо `GetFlattenSoHierarchy` ради совместимости с EDO 2.13 у заказчика; на стенде оба метода дают одинаковые 1888 записей. Подробности — `CLAUDE.md`.
 - `type`: `"Group"` — папка иерархии, `"SecurityObject"` — объект защиты.
-- `host` объекта защиты бывает в трёх местах: `host`, `ciFeature.host`, `acsFeatures[].host`.
+- `host` объекта защиты бывает в трёх местах: `host`, `ciFeatures[].host`, `acsFeatures[].host`.
+- `refreshToken` — `POST /api/identity/Auth/refreshToken/{refreshToken}`, подтверждено Swagger.
 - Стенд EDO — самоподписанный сертификат, EDO-клиент настроен доверять ему явно.
 - Контракт ТМ: путь и тело `POST /api/integration/launch` фиксированы документацией.
 - Контракт импорта в e4 (согласован с тимлидом): `guid`/`srcs.guid`/`srcs.idAdjSys` — все три равны GUID объекта в EDO; `host` раскладывается на `ipv4` (если это IP) или `hostName` (иначе); флаги `Да`/`Нет` — константы; передавать можно массивом.
@@ -81,6 +82,5 @@ docker run -d --name efros-do-connector -p 8080:8080 \
 
 - Авторизация адаптера e4: URL (`https://10.10.18.174/api/v1/import/Hardware`), состав полей и batch согласованы, но на Basic стенд отвечает `401 www-authenticate: Bearer` — нужен источник JWT-токена.
 - Маппинг адреса: несколько `acsFeatures` с разными `host` (сейчас берём первый непустой), IPv6 (уйдёт в `hostName`), объект вообще без `host`.
-- Пагинация в `GetFlattenSoHierarchy` — есть или нет (в задаче: "получить максимальное количество ОЗ").
-- Метод `refreshToken` — предположительно `POST /api/identity/Auth/refreshToken/{refreshToken}`, не проверен вручную через Swagger (сверено только по описанию пользователя).
+- Есть ли `GetListSoHierarchy` в EDO 2.13.42 у заказчика и та ли у него форма ответа — у себя проверить нечем.
 - Параметры регистрации в ТМ (`uid`, `cronString`, содержимое `currentConfig`, `adjacentSystemType`) — см. открытые вопросы в `registration/README.md` и `CLAUDE.md`.

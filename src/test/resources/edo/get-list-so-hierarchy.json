@@ -1,0 +1,135 @@
+[
+  {
+    "iconResourceUuid": "",
+    "children": [
+      {
+        "iconResourceUuid": "",
+        "children": [],
+        "acsFeatures": [],
+        "ciFeatures": [],
+        "flowTriggerFeatures": [],
+        "id": "4734e00b-276c-4f21-a936-60c525a1a33f",
+        "type": "Group",
+        "name": "###grouuuup111",
+        "description": "",
+        "host": "",
+        "parentSoId": "30c5f5ef-caac-4c33-b611-a8388d6562a4",
+        "markers": [],
+        "snmpEnabled": false
+      },
+      {
+        "iconResourceUuid": "",
+        "children": [
+          {
+            "iconResourceUuid": "",
+            "children": [],
+            "acsFeatures": [],
+            "ciFeatures": [],
+            "flowTriggerFeatures": [],
+            "id": "49a08391-300a-415e-990f-430cfb30f9e8",
+            "type": "Group",
+            "name": "01_child_group_test",
+            "description": "description-01",
+            "host": "",
+            "parentSoId": "86360448-cbdb-44c4-a065-cbbc9808042d",
+            "markers": [],
+            "snmpEnabled": false
+          },
+          {
+            "iconResourceUuid": "",
+            "children": [],
+            "acsFeatures": [],
+            "ciFeatures": [],
+            "flowTriggerFeatures": [
+              {"id": "ec78c311-4996-4fde-a336-9be9d7465e7a", "name": "cczxc"},
+              {"id": "df7b1ab2-35d2-4bf1-a475-8cec24c8bfa0", "name": "flow"}
+            ],
+            "id": "97433e04-e706-4432-b27d-8cbda69b31a3",
+            "type": "SecurityObject",
+            "name": "AutoCreate#10",
+            "description": "Объект Защиты создан автоматически, так как появились дополнительные возможности в системе.",
+            "host": "10.72.11.95",
+            "parentSoId": "86360448-cbdb-44c4-a065-cbbc9808042d",
+            "markers": [
+              {"id": "26338424-fbb7-432f-b9d5-12da6c8693b8", "name": "10.72.14.0 10.72.14.255", "color": "#1890ff"}
+            ],
+            "exporters": {
+              "hostname": "uecinfc01.rack11.app.dev",
+              "exporterIp": "10.72.11.95",
+              "ingressPortId": ["10141", "4876", "49"],
+              "egressPortId": ["10135", "10142"]
+            },
+            "snmpEnabled": false
+          },
+          {
+            "iconResourceUuid": "",
+            "children": [],
+            "acsFeatures": [],
+            "ciFeatures": [
+              {
+                "serverUuid": "29ecdb56-fe74-42dc-a2d1-31f4114b942e",
+                "host": "10.72.11.21",
+                "iconResourceUuid": "5516e8d0-6765-4f8b-99a3-5590453cd342",
+                "available": {"isAvailable": true},
+                "notificationInfoStatus": "STATUS_CRITICAL",
+                "inspectionStatus": "ENABLED",
+                "sourceTypeUuid": "7773fa90-78e9-49e2-ad6b-911a9883b2b0",
+                "profileUuid": "7773fa90-78e9-49e2-ad6b-911a9883b2b0",
+                "isAllowSnmp": true,
+                "id": "ee10aa25-e7c5-4e74-af0e-e87ae0590715",
+                "name": "Cisco ASA 10.72.11.21"
+              }
+            ],
+            "flowTriggerFeatures": [],
+            "id": "00000000-0000-0000-0000-0000000000c1",
+            "type": "SecurityObject",
+            "name": "Cisco ASA 10.72.11.21",
+            "description": "",
+            "host": "",
+            "parentSoId": "86360448-cbdb-44c4-a065-cbbc9808042d",
+            "markers": [],
+            "snmpEnabled": true
+          },
+          {
+            "iconResourceUuid": "",
+            "children": [],
+            "acsFeatures": [
+              {"host": "1.1.0.1", "id": "fbc0f25c-9e29-4756-a7b2-620a3898a57d", "name": "123s"}
+            ],
+            "ciFeatures": [],
+            "flowTriggerFeatures": [],
+            "id": "00000000-0000-0000-0000-0000000000a1",
+            "type": "SecurityObject",
+            "name": "123s",
+            "description": "",
+            "host": "",
+            "parentSoId": "86360448-cbdb-44c4-a065-cbbc9808042d",
+            "markers": [],
+            "snmpEnabled": false
+          }
+        ],
+        "acsFeatures": [],
+        "ciFeatures": [],
+        "flowTriggerFeatures": [],
+        "id": "86360448-cbdb-44c4-a065-cbbc9808042d",
+        "type": "Group",
+        "name": "child_group",
+        "description": "",
+        "host": "",
+        "parentSoId": "30c5f5ef-caac-4c33-b611-a8388d6562a4",
+        "markers": [],
+        "snmpEnabled": false
+      }
+    ],
+    "acsFeatures": [],
+    "ciFeatures": [],
+    "flowTriggerFeatures": [],
+    "id": "30c5f5ef-caac-4c33-b611-a8388d6562a4",
+    "type": "Group",
+    "name": "root_group",
+    "description": "",
+    "host": "",
+    "markers": [],
+    "snmpEnabled": false
+  }
+]

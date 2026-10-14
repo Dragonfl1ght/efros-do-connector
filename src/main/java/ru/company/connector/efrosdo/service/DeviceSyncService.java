@@ -30,7 +30,7 @@ public class DeviceSyncService {
     public RunResultDto run() {
         log.info("Запуск задачи");
 
-        List<EdoSecurityObject> objects = edoClient.getFlattenSoHierarchy();
+        List<EdoSecurityObject> objects = edoClient.getSecurityObjects();
         log.info("EDO вернул {} записей", objects.size());
 
         List<DeviceImport> devices = deviceMapper.toDeviceImports(objects);

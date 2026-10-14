@@ -8,6 +8,7 @@ import ru.company.connector.efrosdo.dto.edo.EdoSecurityObject.AcsFeature;
 import ru.company.connector.efrosdo.dto.edo.EdoSecurityObject.CiFeature;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Component
@@ -30,21 +31,18 @@ public class DeviceMapper {
     }
 
     private static String resolveHost(EdoSecurityObject so) {
-        return firstNonBlank(so.host(), ciFeatureHost(so), acsFeatureHost(so));
+        return firstNonBlank(
+                so.host(),
+                firstHost(so.ciFeatures(), CiFeature::host),
+                firstHost(so.acsFeatures(), AcsFeature::host));
     }
 
-    private static String ciFeatureHost(EdoSecurityObject so) {
-        CiFeature ciFeature = so.ciFeature();
-        return ciFeature == null ? null : ciFeature.host();
-    }
-
-    private static String acsFeatureHost(EdoSecurityObject so) {
-        List<AcsFeature> acsFeatures = so.acsFeatures();
-        if (acsFeatures == null) {
+    private static <T> String firstHost(List<T> features, Function<T, String> host) {
+        if (features == null) {
             return null;
         }
-        return acsFeatures.stream()
-                .map(AcsFeature::host)
+        return features.stream()
+                .map(host)
                 .filter(StringUtils::hasText)
                 .findFirst()
                 .orElse(null);

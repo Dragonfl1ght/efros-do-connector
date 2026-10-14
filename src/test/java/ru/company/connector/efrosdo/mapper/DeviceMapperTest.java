@@ -19,7 +19,7 @@ class DeviceMapperTest {
     void keepsOnlySecurityObjects_dropsGroupsAndObjectsWithoutId() {
         List<DeviceImport> result = mapper.toDeviceImports(List.of(
                 securityObject("id-1", "so-1", "10.0.0.1"),
-                new EdoSecurityObject("id-2", "id-1", "Group", "group-1", "descr", null, List.of(), null),
+                new EdoSecurityObject("id-2", "Group", "group-1", "descr", "", List.of(), List.of(), List.of()),
                 securityObject(null, "no-id", "10.0.0.2")
         ));
 
@@ -63,29 +63,46 @@ class DeviceMapperTest {
 
     @Test
     void leavesBothAddressFieldsEmpty_whenObjectHasNoHostAtAll() {
-        DeviceImport device = mapOne(new EdoSecurityObject(
-                "id-1", null, EdoSecurityObject.TYPE_SECURITY_OBJECT, "so-1", "descr", null, List.of(), null));
+        DeviceImport device = mapOne(withFeatures("", List.of(), List.of()));
 
         assertThat(device.hostName()).isNull();
         assertThat(device.ipv4()).isNull();
     }
 
     @Test
-    void resolvesHost_fromCiFeature_whenTopLevelHostMissing() {
-        DeviceImport device = mapOne(new EdoSecurityObject(
-                "id-1", null, EdoSecurityObject.TYPE_SECURITY_OBJECT, "ci-so", "descr", null,
-                List.of(), new CiFeature("10.1.1.1")));
+    void resolvesHost_fromFirstNonBlankCiFeature_whenTopLevelHostEmpty() {
+        DeviceImport device = mapOne(withFeatures("",
+                List.of(),
+                List.of(new CiFeature(""), new CiFeature("10.72.11.21"))));
 
-        assertThat(device.ipv4()).isEqualTo("10.1.1.1");
+        assertThat(device.ipv4()).isEqualTo("10.72.11.21");
     }
 
     @Test
-    void resolvesHost_fromFirstNonBlankAcsFeature_whenTopLevelAndCiFeatureMissing() {
-        DeviceImport device = mapOne(new EdoSecurityObject(
-                "id-1", null, EdoSecurityObject.TYPE_SECURITY_OBJECT, "acs-so", "descr", null,
-                List.of(new AcsFeature("  ", "f-1", "blank"), new AcsFeature("1.1.0.1", "f-2", "eth0")), null));
+    void resolvesHost_fromFirstNonBlankAcsFeature_whenTopLevelAndCiFeaturesEmpty() {
+        DeviceImport device = mapOne(withFeatures("",
+                List.of(new AcsFeature("  ", "f-1", "blank"), new AcsFeature("1.1.0.1", "f-2", "eth0")),
+                List.of()));
 
         assertThat(device.ipv4()).isEqualTo("1.1.0.1");
+    }
+
+    @Test
+    void prefersTopLevelHost_thenCiFeatures_thenAcsFeatures() {
+        List<AcsFeature> acs = List.of(new AcsFeature("3.3.3.3", "f-acs", "acs"));
+        List<CiFeature> ci = List.of(new CiFeature("2.2.2.2"));
+
+        assertThat(mapOne(withFeatures("1.1.1.1", acs, ci)).ipv4()).isEqualTo("1.1.1.1");
+        assertThat(mapOne(withFeatures("", acs, ci)).ipv4()).isEqualTo("2.2.2.2");
+        assertThat(mapOne(withFeatures("", acs, List.of())).ipv4()).isEqualTo("3.3.3.3");
+    }
+
+    @Test
+    void toleratesMissingFeatureLists() {
+        DeviceImport device = mapOne(withFeatures(null, null, null));
+
+        assertThat(device.ipv4()).isNull();
+        assertThat(device.hostName()).isNull();
     }
 
     @Test
@@ -108,6 +125,11 @@ class DeviceMapperTest {
 
     private EdoSecurityObject securityObject(String id, String name, String host) {
         return new EdoSecurityObject(
-                id, null, EdoSecurityObject.TYPE_SECURITY_OBJECT, name, "descr", host, List.of(), null);
+                id, EdoSecurityObject.TYPE_SECURITY_OBJECT, name, "descr", host, List.of(), List.of(), List.of());
+    }
+
+    private EdoSecurityObject withFeatures(String host, List<AcsFeature> acsFeatures, List<CiFeature> ciFeatures) {
+        return new EdoSecurityObject(
+                "id-1", EdoSecurityObject.TYPE_SECURITY_OBJECT, "so-1", "descr", host, acsFeatures, ciFeatures, List.of());
     }
 }
