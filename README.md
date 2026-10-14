@@ -30,6 +30,7 @@ config/TrustAllRequestFactory.java     - доверие самоподписан
 config/RequiredSettingsCheck.java      - падение на старте, если не задана обязательная настройка
 registration/                          - разовая ручная регистрация в ТМ (regconn.json, register.sh, README.md)
 config/application.yml.example         - шаблон внешней конфигурации (лежит в корне, не в jar)
+docs/                                  - документация для заказчика: установка и регистрация в ТМ (исходники Word)
 ```
 
 Контроллер не содержит бизнес-логики — только делегирует в `DeviceSyncService`. Фильтрация и маппинг вынесены в `DeviceMapper`, поэтому тестируются юнит-тестом без поднятия Spring-контекста (`DeviceMapperTest`). Имена полей в теле импорта e4 зафиксированы отдельным тестом (`DeviceImportJsonTest`) — e4 сверяет их строкой.

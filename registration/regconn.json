@@ -11,7 +11,7 @@
     "port": "8080"
   },
   "parameters": {
-    "version": "0.0.1",
+    "version": "0.0.3",
     "isManual": true,
     "isShadow": false,
     "cronString": "0 0 3 * * ?",
@@ -32,7 +32,7 @@
           }
         },
         "e4AdapterSettings": {
-          "address": "http://e4/adapter/import-ts"
+          "address": "https://10.10.18.174"
         },
         "taskManagerInteractionSettings": {
           "address": "https://10.10.18.175:8443"
