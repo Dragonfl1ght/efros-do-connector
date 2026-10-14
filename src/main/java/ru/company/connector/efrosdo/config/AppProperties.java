@@ -25,7 +25,7 @@ public record AppProperties(Edo edo, E4 e4) {
     }
 
     public record E4(
-            String url,
+            String baseUrl,
             String login,
             String password,
             Duration connectTimeout,

@@ -16,7 +16,8 @@ mapper/HostAddress.java                - разбор host на ipv4/hostName (�
 client/EdoClient.java                  - HTTP-вызов EDO: GetListSoHierarchy, разворачивание дерева, повтор при 401
 client/EdoTokenProvider.java           - логин/refresh и кеш токена EDO
 client/EdoApiPaths.java                - пути API EDO одной кучей
-client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices
+client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices с Bearer-токеном, повтор при 401
+client/E4TokenProvider.java            - получение и кеш токена адаптера через /api/getToken
 dto/tm/                                - LaunchRequestDto, LaunchResponseDto (контракт ТМ)
 dto/edo/                               - EdoLoginRequest, EdoLoginResponse, EdoSecurityObject
 dto/e4/DeviceImport.java               - тело импорта ТС в e4, собирается через DeviceImport.of()
@@ -43,7 +44,7 @@ config/application.yml.example         - шаблон внешней конфи�
 2. **Внешний файл `config/application.yml`** рядом с jar (в контейнере — `/app/config/application.yml`). Spring Boot подхватывает его сам, флаги запуска не нужны. Шаблон со всеми настройками и пояснениями: `config/application.yml.example`.
 3. **Переменные окружения** — перекрывают файл. Имя получается из имени настройки: верхний регистр, точки и дефисы в подчёркивания (`connector.edo.base-url` → `CONNECTOR_EDO_BASE_URL`).
 
-Обязательный минимум — `connector.edo.base-url`, `connector.edo.login`, `connector.edo.password`, `connector.e4.url`. Без любого из них коннектор не стартует и пишет в лог, какой именно настройки не хватает, вместо того чтобы падать позже на первом запросе.
+Обязательный минимум — `base-url`, `login` и `password` и для `connector.edo`, и для `connector.e4`. Без любого из них коннектор не стартует и пишет в лог, какой именно настройки не хватает, вместо того чтобы падать позже на первом запросе.
 
 Пароли лучше передавать переменными окружения, а не файлом. `config/application.yml` добавлен в `.gitignore`, чтобы реальные креды не попали в репозиторий.
 
@@ -77,10 +78,10 @@ docker run -d --name efros-do-connector -p 8080:8080 \
 - Стенд EDO — самоподписанный сертификат, EDO-клиент настроен доверять ему явно.
 - Контракт ТМ: путь и тело `POST /api/integration/launch` фиксированы документацией.
 - Контракт импорта в e4 (согласован с тимлидом): `guid`/`srcs.guid`/`srcs.idAdjSys` — все три равны GUID объекта в EDO; `host` раскладывается на `ipv4` (если это IP) или `hostName` (иначе); флаги `Да`/`Нет` — константы; передавать можно массивом.
+- Авторизация адаптера e4: `POST /api/getToken` с телом `{"username", "password"}` (ключ с маленькой `n`), токен из `access_token` уходит в `Authorization: Bearer`. Подтверждено на стенде: импорт ответил `200 "Импорт завершен успешно"`.
 
 ## TODO (согласовать с тимлидом)
 
-- Авторизация адаптера e4: URL (`https://10.10.18.174/api/v1/import/Hardware`), состав полей и batch согласованы, но на Basic стенд отвечает `401 www-authenticate: Bearer` — нужен источник JWT-токена.
 - Маппинг адреса: несколько `acsFeatures` с разными `host` (сейчас берём первый непустой), IPv6 (уйдёт в `hostName`), объект вообще без `host`.
 - Есть ли `GetListSoHierarchy` в EDO 2.13.42 у заказчика и та ли у него форма ответа — у себя проверить нечем.
 - Параметры регистрации в ТМ (`uid`, `cronString`, содержимое `currentConfig`, `adjacentSystemType`) — см. открытые вопросы в `registration/README.md` и `CLAUDE.md`.

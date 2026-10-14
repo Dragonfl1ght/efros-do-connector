@@ -117,12 +117,17 @@ src/main/java/ru/company/connector/efrosdo/
 │   │                                     дерева в плоский список, повтор с новым токеном при 401
 │   ├── EdoTokenProvider.java             логин/refresh и кеш токена EDO — вся работа с токеном
 │   ├── EdoApiPaths.java                  пути API EDO одной кучей, не разбросаны по коду
-│   └── E4Client.java                     importDevices() в адаптер e4
+│   ├── E4Client.java                     importDevices(): POST в адаптер e4 с Bearer-токеном,
+│   │                                     повтор с новым токеном при 401
+│   ├── E4TokenProvider.java              получение и кеш токена адаптера через /api/getToken
+│   └── E4ApiPaths.java                   пути API адаптера e4
 ├── dto/
 │   ├── tm/                               LaunchRequestDto, LaunchResponseDto (контракт ТМ)
 │   ├── edo/                              EdoLoginRequest, EdoLoginResponse, EdoSecurityObject
 │   ├── e4/DeviceImport.java              тело импорта ТС в e4, собирается через DeviceImport.of()
 │   ├── e4/E4ImportConstants.java         фиксированные значения контракта e4 (Да/Нет, имя источника)
+│   ├── e4/E4TokenRequest.java            тело getToken: {"username", "password"}
+│   ├── e4/E4TokenResponse.java           ответ getToken, поле access_token
 │   └── RunResultDto.java                 внутренний итог прогона, для логов
 └── exception/
     └── GlobalExceptionHandler.java       ошибки EDO/e4 -> 502 + сообщение
@@ -149,8 +154,7 @@ config/application.yml.example            шаблон внешней конфи
 3. Переменные окружения — перекрывают файл. Имя выводится из имени настройки: верхний регистр,
    точки и дефисы в подчёркивания (`connector.edo.base-url` → `CONNECTOR_EDO_BASE_URL`).
 
-Обязательный минимум — `connector.edo.base-url`, `connector.edo.login`, `connector.edo.password`,
-`connector.e4.url`. `RequiredSettingsCheck` роняет контекст на старте с указанием недостающей
+Обязательный минимум — `base-url`, `login` и `password` и для `connector.edo`, и для `connector.e4`. `RequiredSettingsCheck` роняет контекст на старте с указанием недостающей
 настройки, чтобы ошибка конфигурации не всплывала позже как 502 на первом запросе. Проверено
 на собранном jar: без конфига падает с этим сообщением, внешний файл подхватывается,
 переменная окружения перекрывает файл.
@@ -179,7 +183,9 @@ config/application.yml.example            шаблон внешней конфи
 3. `host` объекта достаём из одного из трёх мест (по порядку): `host`, первый непустой
    `ciFeatures[].host`, первый непустой `acsFeatures[].host`.
 4. Маппинг в `DeviceImport`.
-5. `e4Client.importDevices(...)` → POST в адаптер e4.
+5. `e4Client.importDevices(...)` — токен адаптера через `POST /api/getToken` (кешируется
+   между прогонами), затем `POST /api/v1/import/Hardware` с `Authorization: Bearer`.
+   Если адаптер ответит 401 — запрашивается новый токен и импорт повторяется один раз.
 
 ---
 
@@ -210,24 +216,42 @@ config/application.yml.example            шаблон внешней конфи
 
 ## Адаптер e4
 
-Стенд, выданный тимлидом: `POST https://10.10.18.174/api/v1/import/Hardware`.
-На адресе стоит не заглушка, а настоящий фронтенд ePlat4m (`<title>ePlat4m</title>`,
-`/assets/*.js`); Swagger по `/swagger/v1/swagger.json` и `/v3/api-docs` не отдаётся —
-на неизвестный путь сервер возвращает `index.html` SPA с кодом 200.
+Тестовый стенд: `https://10.10.18.174` — настоящий ePlat4m, не заглушка. Swagger у адаптера
+не опубликован: на неизвестный путь сервер отдаёт `index.html` фронтенда с кодом 200.
+Прод заказчика `10.10.37.142` — тоже ePlat4m (проверено по `<title>`), туда ничего не шлём.
 
-- Тело: массив `DeviceImport` (batch подтверждён тимлидом).
-- TLS: HTTPS с самоподписанным сертификатом, e4-клиент доверяет ему так же, как EDO-клиент.
+В конфиге задаётся **базовый адрес** (`connector.e4.base-url`), пути — константы в `E4ApiPaths`.
+Так же устроен конфиг соседнего ClassificationService: `address` плюс относительные пути.
+
+### Авторизация — подтверждено на стенде
+
+1. `POST /api/getToken`, тело `{"username": "DEV\\edo", "password": "..."}`.
+   **Ключ именно `username` с маленькой `n`.** На `userName`, `login`, `user` и на пустое тело
+   адаптер отвечает `500 {"error":"Value cannot be null. (Parameter 'value')"}`; на Basic — 400.
+   Регистр закреплён тестом `E4TokenJsonTest`.
+2. Ответ: `{"$type": "...TokenResultDto", "access_token": "eyJ...", "token_type": "bearer", "userName": "edo"}`.
+   Refresh-токена нет — при 401 токен просто запрашивается заново (`E4TokenProvider.renew`).
+3. `POST /api/v1/import/Hardware` с `Authorization: Bearer <access_token>` — на пустой массив
+   стенд ответил `200 "Импорт завершен успешно"`.
+
+Подсказку дал конфиг ClassificationService (`tokenAuthAdapterPath: api/getToken`).
+
+### Почему у клиента e4 `BufferingClientHttpRequestFactory`
+
+`SimpleClientHttpRequestFactory` шлёт тело chunked, без `Content-Length`. EDO это принимает,
+а для адаптера подтверждён только запрос с `Content-Length` (так шлёт `curl`). Ошибка
+`Value cannot be null` — ровно то, что .NET-бэкенд адаптера отдаёт, не найдя тела, поэтому
+для e4 тело буферизуется и длина выставляется явно. Тело импорта — порядка мегабайта на
+~1900 ТС, держать его в памяти не проблема. EDO-клиент не трогали — там chunked проверен.
+
+### Остальное
+
+- Тело импорта: массив `DeviceImport` (batch подтверждён тимлидом), все ТС одним запросом.
+  Предел адаптера на размер тела не известен; `read-timeout` в шаблоне конфига — 120s.
+- TLS: самоподписанный сертификат, e4-клиент доверяет ему так же, как EDO-клиент.
   **Для боевого контура это нужно пересмотреть.**
-- **Авторизация не решена.** Выданы креды `DEV\edo` / `Gazprom*123`, но Basic на них
-  отвечает `401` с заголовком `www-authenticate: Bearer` — сервер ждёт JWT, а не Basic
-  и не NTLM. В коде сейчас остаётся Basic (`HttpClientsConfig.e4RestClient`) как временная
-  заглушка; переделывать вслепую нельзя — сначала нужен ответ тимлида, откуда берётся токен.
-  Когда путь логина станет известен — в `E4Client` нужен такой же механизм, как
-  `EdoTokenProvider`: логин, кеш токена, переавторизация при 401.
-- Креды **не хранятся в репозитории**: задаются внешним `config/application.yml` или
-  переменными `CONNECTOR_E4_LOGIN` / `CONNECTOR_E4_PASSWORD` (см. раздел "Конфигурация").
-  Если они не заданы — заголовок авторизации не ставится вообще, и адаптер отвечает
-  внятным 401 вместо падения на старте.
+- Креды **не хранятся в репозитории**: внешний `config/application.yml` или переменные
+  `CONNECTOR_E4_LOGIN` / `CONNECTOR_E4_PASSWORD`. Без них коннектор не стартует.
 
 ---
 
@@ -292,20 +316,18 @@ EDO придётся вернуться к `GetFlattenSoHierarchy` (плоски
 
 ## Открытые вопросы (не выдумывать ответы — спрашивать)
 
-1. **Авторизация адаптера e4** — главный блокер, см. раздел "Адаптер e4" ниже.
-   Откуда брать Bearer-токен: эндпоинт логина, формат тела, имя поля с токеном.
-2. **Маппинг адреса** — состав полей и batch подтверждены тимлидом, открыто:
+1. **Маппинг адреса** — состав полей и batch подтверждены тимлидом, открыто:
    - если у объекта несколько `acsFeatures` с разными `host` — берём первый непустой, остальные теряем;
    - IPv6 в `host` уйдёт в `hostName`, а не в `ipv4` (регекс проверяет только IPv4);
    - если `host` нет нигде — оба поля (`ipv4`, `hostName`) уходят пустыми.
-3. **`GetListSoHierarchy` в EDO 2.13.42** — у себя проверить нечем (наши стенды — 2.52).
+2. **`GetListSoHierarchy` в EDO 2.13.42** — у себя проверить нечем (наши стенды — 2.52).
    Нужен один вызов на площадке заказчика: метод есть, и форма ответа та же (дерево, `ciFeatures`).
-4. **Несколько `ciFeatures` у одного ОЗ** — берём первый непустой `host`, как и для `acsFeatures`.
-5. **`uId` сервиса для регистрации в ТМ** — сейчас `efrosdo_uko` по аналогии с
+3. **Несколько `ciFeatures` у одного ОЗ** — берём первый непустой `host`, как и для `acsFeatures`.
+4. **`uId` сервиса для регистрации в ТМ** — сейчас `efrosdo_uko` по аналогии с
    `ksc_uko`/`maxpatrol_uko`. Само поле называется `uId` (подтверждено схемой), но
    принятый в команде формат значения (строка-слаг vs GUID) не подтверждён.
-6. **`cronString`** для регистрации — сейчас `0 0 3 * * ?` (3 ночи), согласовать с тимлидом.
-7. **Содержимое `rootElement` внутри `currentConfig`** — сейчас минимум (адреса), уточнить,
+5. **`cronString`** для регистрации — сейчас `0 0 3 * * ?` (3 ночи), согласовать с тимлидом.
+6. **Содержимое `rootElement` внутри `currentConfig`** — сейчас минимум (адреса), уточнить,
    нужно ли класть туда весь конфиг целиком (включая пароли, как в примере СА). Обёртка
    `JsonDocument` подтверждена схемой, содержимое — нет.
 

@@ -10,7 +10,9 @@ class RequiredSettingsCheck {
         require(props.edo().baseUrl(), "connector.edo.base-url");
         require(props.edo().login(), "connector.edo.login");
         require(props.edo().password(), "connector.edo.password");
-        require(props.e4().url(), "connector.e4.url");
+        require(props.e4().baseUrl(), "connector.e4.base-url");
+        require(props.e4().login(), "connector.e4.login");
+        require(props.e4().password(), "connector.e4.password");
     }
 
     private static void require(String value, String property) {
