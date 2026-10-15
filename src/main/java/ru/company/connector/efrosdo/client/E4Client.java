@@ -25,8 +25,9 @@ public class E4Client {
     public void importDevices(List<DeviceImport> devices) {
         try {
             sendDevices(devices, tokenProvider.accessToken());
-        } catch (HttpClientErrorException.Unauthorized e) {
-            log.warn("Адаптер e4 отклонил токен (401), запрашиваем новый и повторяем");
+        } catch (HttpClientErrorException.Unauthorized | HttpClientErrorException.Forbidden e) {
+            log.warn("Адаптер e4 отклонил токен (HTTP {}), запрашиваем новый и повторяем",
+                    e.getStatusCode().value());
             sendDevices(devices, tokenProvider.renew());
         }
     }
