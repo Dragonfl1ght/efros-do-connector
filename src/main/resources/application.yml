@@ -12,6 +12,11 @@ connector:
   e4:
     connect-timeout: 5s
     read-timeout: 30s
+  tm:
+    service-uid: efrosdo_uko
+    connect-timeout: 5s
+    read-timeout: 30s
+    status-delay: 2s
 
 logging:
   level:

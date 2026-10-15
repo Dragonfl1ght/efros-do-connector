@@ -13,6 +13,7 @@ class RequiredSettingsCheck {
         require(props.e4().baseUrl(), "connector.e4.base-url");
         require(props.e4().login(), "connector.e4.login");
         require(props.e4().password(), "connector.e4.password");
+        require(props.tm().baseUrl(), "connector.tm.base-url");
     }
 
     private static void require(String value, String property) {

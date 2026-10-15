@@ -2,9 +2,9 @@
 
 Коннектор Efros Defense Operations → САОБ (через адаптер e4).
 
-**Флоу:** ТМ (Менеджер задач) дёргает `POST /api/integration/launch` (путь и формат тела фиксированы документацией ТМ, раздел 1.5.1 — свой путь придумать нельзя) → логинимся в EDO (`POST /api/identity/Auth/LoginByPassword`) → `POST /api/v1/SecurityObject/GetListSoHierarchy` с пустым телом фильтра → разворачивание дерева в плоский список → фильтр по `type == "SecurityObject"` → маппинг полей → POST в адаптер e4. Синхронно, в одном потоке, без очередей и без стейта.
+**Флоу:** ТМ (Менеджер задач) дёргает `POST /api/integration/launch` (путь и формат тела фиксированы документацией ТМ, раздел 1.5.1 — свой путь придумать нельзя) → логинимся в EDO (`POST /api/identity/Auth/LoginByPassword`) → `POST /api/v1/SecurityObject/GetListSoHierarchy` с пустым телом фильтра → разворачивание дерева в плоский список → фильтр по `type == "SecurityObject"` → маппинг полей → POST в адаптер e4 → ответ ТМ, и через 2 секунды `POST api/services/condition` со статусом `Free`. Синхронно, без очередей и без стейта.
 
-Регистрация сервиса в ТМ — **разовая ручная операция**, не код (см. `registration/`). Уведомления об этапах/статусах ТМ (`running` → `free`) сознательно не отправляются — см. `CLAUDE.md`, раздел "Что мы сознательно НЕ делаем".
+Регистрация сервиса в ТМ — **разовая ручная операция**, не код (см. `registration/`). Статус `Free` после прогона отправляется обязательно: в `Running` ТМ коннектор по расписанию не запускает — см. `CLAUDE.md`, «Уведомление ТМ о статусе».
 
 ## Структура (по слоям)
 
@@ -18,6 +18,8 @@ client/EdoTokenProvider.java           - логин/refresh и кеш токен
 client/EdoApiPaths.java                - пути API EDO одной кучей
 client/E4Client.java                   - HTTP-вызов адаптера e4: importDevices с Bearer-токеном, повтор при 401
 client/E4TokenProvider.java            - получение и кеш токена адаптера через /api/getToken
+client/TmClient.java                   - уведомление ТМ о статусе Free (api/services/condition)
+service/TmStatusNotifier.java          - когда слать Free: после ответа на /launch и при старте
 dto/tm/                                - LaunchRequestDto, LaunchResponseDto (контракт ТМ)
 dto/edo/                               - EdoLoginRequest, EdoLoginResponse, EdoSecurityObject
 dto/e4/DeviceImport.java               - тело импорта ТС в e4, собирается через DeviceImport.of()
@@ -45,7 +47,7 @@ docs/                                  - документация для зак�
 2. **Внешний файл `config/application.yml`** рядом с jar (в контейнере — `/app/config/application.yml`). Spring Boot подхватывает его сам, флаги запуска не нужны. Шаблон со всеми настройками и пояснениями: `config/application.yml.example`.
 3. **Переменные окружения** — перекрывают файл. Имя получается из имени настройки: верхний регистр, точки и дефисы в подчёркивания (`connector.edo.base-url` → `CONNECTOR_EDO_BASE_URL`).
 
-Обязательный минимум — `base-url`, `login` и `password` и для `connector.edo`, и для `connector.e4`. Без любого из них коннектор не стартует и пишет в лог, какой именно настройки не хватает, вместо того чтобы падать позже на первом запросе.
+Обязательный минимум — `base-url`, `login` и `password` и для `connector.edo`, и для `connector.e4`, плюс `connector.tm.base-url`. Без любого из них коннектор не стартует и пишет в лог, какой именно настройки не хватает, вместо того чтобы падать позже на первом запросе.
 
 Пароли лучше передавать переменными окружения, а не файлом. `config/application.yml` добавлен в `.gitignore`, чтобы реальные креды не попали в репозиторий.
 

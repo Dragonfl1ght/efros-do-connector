@@ -26,4 +26,14 @@ public class HttpClientsConfig {
                         new TrustAllRequestFactory(e4.connectTimeout(), e4.readTimeout())))
                 .build();
     }
+
+    @Bean
+    RestClient tmRestClient(AppProperties props) {
+        AppProperties.Tm tm = props.tm();
+        return RestClient.builder()
+                .baseUrl(tm.baseUrl())
+                .requestFactory(new BufferingClientHttpRequestFactory(
+                        new TrustAllRequestFactory(tm.connectTimeout(), tm.readTimeout())))
+                .build();
+    }
 }

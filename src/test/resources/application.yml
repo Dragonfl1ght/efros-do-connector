@@ -7,3 +7,5 @@ connector:
     base-url: https://e4.test
     login: test-login
     password: test-password
+  tm:
+    base-url: http://127.0.0.1:1

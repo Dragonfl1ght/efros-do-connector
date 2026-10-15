@@ -31,7 +31,7 @@ class E4ClientTest {
         adapter = MockRestServiceServer.bindTo(builder).build();
         RestClient restClient = builder.build();
         AppProperties props = new AppProperties(null,
-                new AppProperties.E4(BASE_URL, "DEV\\edo", "secret", null, null));
+                new AppProperties.E4(BASE_URL, "DEV\\edo", "secret", null, null), null);
         client = new E4Client(restClient, new E4TokenProvider(restClient, props));
     }
 

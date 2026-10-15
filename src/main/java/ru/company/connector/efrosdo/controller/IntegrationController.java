@@ -10,6 +10,7 @@ import ru.company.connector.efrosdo.dto.RunResultDto;
 import ru.company.connector.efrosdo.dto.tm.LaunchRequestDto;
 import ru.company.connector.efrosdo.dto.tm.LaunchResponseDto;
 import ru.company.connector.efrosdo.service.DeviceSyncService;
+import ru.company.connector.efrosdo.service.TmStatusNotifier;
 
 @RestController
 @RequestMapping("/api/integration")
@@ -20,9 +21,11 @@ public class IntegrationController {
     private static final String UNKNOWN_TASK_GUID = "<без taskGuid>";
 
     private final DeviceSyncService deviceSyncService;
+    private final TmStatusNotifier tmStatusNotifier;
 
-    public IntegrationController(DeviceSyncService deviceSyncService) {
+    public IntegrationController(DeviceSyncService deviceSyncService, TmStatusNotifier tmStatusNotifier) {
         this.deviceSyncService = deviceSyncService;
+        this.tmStatusNotifier = tmStatusNotifier;
     }
 
     @PostMapping("/launch")
@@ -33,6 +36,7 @@ public class IntegrationController {
 
         log.info("Задача {} завершена: получено из EDO {}, отправлено в e4 {}",
                 taskGuid, result.fetchedCount(), result.sentCount());
+        tmStatusNotifier.reportFreeAfterResponse();
         return LaunchResponseDto.accepted();
     }
 
