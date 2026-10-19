@@ -28,6 +28,16 @@ class DeviceMapperTest {
     }
 
     @Test
+    void keepsObjectsWithoutType_edo213DoesNotSendTypeField() {
+        List<DeviceImport> result = mapper.toDeviceImports(List.of(
+                new EdoSecurityObject("id-1", null, "so-1", "descr", "10.0.0.1", List.of(), List.of(), List.of()),
+                new EdoSecurityObject("id-2", "Group", "group-1", "descr", "", List.of(), List.of(), List.of())
+        ));
+
+        assertThat(result).extracting(DeviceImport::name).containsExactly("so-1");
+    }
+
+    @Test
     void fillsAllThreeIdFieldsWithEdoGuid_soRepeatedSyncUpdatesInsteadOfDuplicating() {
         DeviceImport device = mapOne(securityObject("edo-guid", "so-1", "10.0.0.1"));
 
