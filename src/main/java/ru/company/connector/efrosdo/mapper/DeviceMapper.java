@@ -22,7 +22,8 @@ public class DeviceMapper {
     }
 
     private static boolean isSecurityObject(EdoSecurityObject so) {
-        return so != null && so.id() != null && EdoSecurityObject.TYPE_SECURITY_OBJECT.equals(so.type());
+        return so != null && so.id() != null
+                && (so.type() == null || EdoSecurityObject.TYPE_SECURITY_OBJECT.equals(so.type()));
     }
 
     private static DeviceImport toDeviceImport(EdoSecurityObject so) {
